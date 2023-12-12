@@ -38,6 +38,9 @@ ENV NODE_OPTIONS="--max_old_space_size=2048"
 USER appuser
 WORKDIR /app
 
+# Copy all files
+COPY --chown=appuser:appuser . .
+
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
 ENV DEV_START "yarn --cwd $PROJECT/$FOLDER dev"
@@ -74,6 +77,11 @@ ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 # Use non-root user
 USER appuser
 
+WORKDIR /app
+
+# copy all files
+COPY --chown=appuser:appuser . .
+
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
@@ -108,7 +116,7 @@ COPY --from=appbase --chown=appuser:appuser /app/.yarn_cache /app/.yarn_cache
 
 # Install production dependencies
 RUN --mount=type=cache,from=distbase,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
-    yarn cache clean --force
+    yarn cache clean
 
 # Copy files needed by nextjs
 COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
