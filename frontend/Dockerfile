@@ -5,7 +5,6 @@ ARG FOLDER
 FROM helsinkitest/node:18-slim AS appbase
 # =============================
 
-
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
@@ -77,7 +76,7 @@ WORKDIR /app
 
 # copy all files
 COPY --chown=appuser:appuser . .
-COPY --from=appbase /app/node_modules ./node_modules
+COPY --from=appbase --chown=appuser:appuser /app/node_modules ./node_modules
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
@@ -98,7 +97,7 @@ USER appuser
 WORKDIR /app
 
 # Copy cache
-COPY --from=appbase /app/.yarn_cache ./.yarn_cache
+# COPY --from=appbase /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
 COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
@@ -107,7 +106,7 @@ COPY --chown=appuser:appuser $PROJECT/shared/package.json $PROJECT/shared/packag
 COPY --chown=appuser:appuser shared/package.json shared/package.json
 
 # Install production dependencies
-RUN YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
+RUN --mount=type=cache,from=appbase,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache  yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
 COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
