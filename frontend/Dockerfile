@@ -5,9 +5,6 @@ FROM helsinkitest/node:18-slim AS distbase
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
-# Copy all files
-COPY --chown=appuser:appuser . ./app
-
 # =============================
 FROM distbase AS appbase
 # =============================
@@ -23,6 +20,9 @@ RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true
 
 WORKDIR /app
+
+# Copy all files
+COPY --chown=appuser:appuser . .
 
 # Install dependencies
 # COPY --chown=appuser:appuser package.json yarn.lock ./
@@ -85,7 +85,7 @@ USER appuser
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build && yarn cache clean --force
+RUN yarn build && yarn cache clean
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
 USER root
