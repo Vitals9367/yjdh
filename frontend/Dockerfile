@@ -72,7 +72,7 @@ ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
 # copy all files
-COPY . ./app
+COPY . /app
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
