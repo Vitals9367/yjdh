@@ -21,16 +21,11 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 
 WORKDIR /app
 
-COPY --chown=appuser:appuser package.json yarn.lock ./
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY --chown=appuser:appuser shared/package.json shared/package.json
-
-# Install dependencies
-RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
-
 # Copy all files
 COPY --chown=appuser:appuser . .
+
+# Install dependencies
+RUN --mount=type=cache,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
 FROM appbase AS development
@@ -82,7 +77,7 @@ USER appuser
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build
+RUN --mount=type=cache,from=distbase,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn build
 # RUN yarn cache clean
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
@@ -112,7 +107,7 @@ COPY --chown=appuser:appuser shared/package.json shared/package.json
 COPY --from=appbase --chown=appuser:appuser /app/.yarn_cache /app/.yarn_cache
 
 # Install production dependencies
-RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
+RUN --mount=type=cache,from=distbase,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # Copy files needed by nextjs
