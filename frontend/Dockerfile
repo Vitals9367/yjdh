@@ -19,12 +19,11 @@ ENV YARN_VERSION 1.22.10
 RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true
 
-WORKDIR /app
-
-# Copy all files
-COPY --chown=appuser:appuser . .
-
 # Install dependencies
+COPY package.json yarn.lock ./
+COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY shared/package.json shared/package.json
 RUN --mount=type=cache,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
@@ -34,12 +33,10 @@ FROM appbase AS development
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
 
-# Use non-root user
-USER appuser
 WORKDIR /app
 
 # Copy all files
-COPY --chown=appuser:appuser . .
+COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
@@ -74,18 +71,13 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-# Use non-root user
-USER appuser
-
-WORKDIR /app
-
 # copy all files
-COPY --chown=appuser:appuser . .
+COPY . ./app
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN --mount=type=cache,from=distbase,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn build
+RUN yarn build
 # RUN yarn cache clean
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
@@ -106,26 +98,26 @@ USER appuser
 WORKDIR /app
 
 # Copy files needed by yarn install
-COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:appuser $PROJECT/shared/package.json $PROJECT/shared/package.json
-COPY --chown=appuser:appuser shared/package.json shared/package.json
+COPY package.json yarn.lock lerna.json ./
+COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
+COPY shared/package.json shared/package.json
 
 # Copy Yarn cache from appbase stage
-COPY --from=appbase --chown=appuser:appuser /app/.yarn_cache /app/.yarn_cache
+COPY --from=appbase /app/.yarn_cache /app/.yarn_cache
 
 # Install production dependencies
 RUN --mount=type=cache,from=distbase,target="$PWD/.yarn_cache" YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean
 
 # Copy files needed by nextjs
-COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder --chown=appuser:appuser app/next.config.js ./
-COPY --from=staticbuilder --chown=appuser:appuser app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --from=staticbuilder app/next.config.js ./
+COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
 # Expose port
 EXPOSE $PORT
