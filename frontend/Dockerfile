@@ -5,6 +5,9 @@ FROM helsinkitest/node:18-slim AS distbase
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
+# Copy all files
+COPY --chown=appuser:appuser . ./app
+
 # =============================
 FROM distbase AS appbase
 # =============================
@@ -16,28 +19,21 @@ ARG FOLDER
 # Yarn
 ENV YARN_VERSION 1.22.10
 
-RUN yarn policies set-version "$YARN_VERSION"
-RUN yarn config set ignore-engines true
+RUN yarn policies set-version "$YARN_VERSION" && \
+    yarn config set ignore-engines true
 
 WORKDIR /app
 
 # Install dependencies
-COPY --chown=appuser:appuser package.json yarn.lock ./
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY --chown=appuser:appuser shared/package.json shared/package.json
+# COPY --chown=appuser:appuser package.json yarn.lock ./
+# COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+# COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
+# COPY --chown=appuser:appuser shared/package.json shared/package.json
 RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
 FROM appbase AS development
 # =============================
-
-# Copy all files
-COPY --chown=appuser:appuser . .
-
-# Use non-root user
-USER appuser
-
 # Set V8 max heap size to 2GB (default is 512MB)
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
@@ -47,9 +43,6 @@ ARG FOLDER
 # Use non-root user
 USER appuser
 WORKDIR /app
-
-# Copy all files
-COPY --chown=appuser:appuser . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
@@ -88,22 +81,15 @@ ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
 # Use non-root user
 USER appuser
-WORKDIR /app
-
-# copy all files
-COPY --chown=appuser:appuser . .
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build
+RUN yarn build && yarn cache clean --force
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
 USER root
 RUN rm -rf node_modules
-
-USER appuser
-RUN yarn cache clean
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
