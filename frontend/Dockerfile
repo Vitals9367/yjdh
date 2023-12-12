@@ -1,16 +1,13 @@
 ARG PROJECT
 ARG FOLDER
 
-# =======================================
-FROM helsinkitest/node:18-slim AS distbase
-# =======================================
+# =============================
+FROM helsinkitest/node:18-slim AS appbase
+# =============================
+
 
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
-
-# =============================
-FROM distbase AS appbase
-# =============================
 
 # Yarn
 ENV YARN_VERSION 1.22.10
@@ -25,7 +22,7 @@ COPY --chown=appuser:appuser package.json yarn.lock ./
 COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
 COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
 COPY --chown=appuser:appuser shared/package.json shared/package.json
-RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
+RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --focus --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
 FROM appbase AS development
@@ -87,13 +84,6 @@ WORKDIR /app/$PROJECT/$FOLDER/
 
 RUN yarn build
 
-# Clean all dependencies (this should avoid caching + missing /pages directory problem)
-USER root
-RUN rm -rf node_modules
-
-USER appuser
-RUN yarn cache clean
-
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
 # ==========================================
@@ -108,7 +98,7 @@ USER appuser
 WORKDIR /app
 
 # Copy cache
-COPY --from=appbase /app/.yarn_cache .yarn_cache
+COPY --from=appbase /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
 COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
