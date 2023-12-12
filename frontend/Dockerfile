@@ -76,7 +76,7 @@ WORKDIR /app
 
 # copy all files
 COPY --chown=appuser:appuser . .
-COPY --from=appbase --chown=appuser:appuser /app/node_modules ./node_modules
+#COPY --from=appbase --chown=appuser:appuser /app/node_modules ./node_modules
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
