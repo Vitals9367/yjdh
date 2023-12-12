@@ -1,3 +1,7 @@
+# Shared ARGS
+ARG PROJECT
+ARG FOLDER
+
 # =======================================
 FROM helsinkitest/node:18-slim AS distbase
 # =======================================
@@ -9,10 +13,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 FROM distbase AS appbase
 # =============================
 
-# Build ARGS
-ARG PROJECT
-ARG FOLDER
-
 # Yarn
 ENV YARN_VERSION 1.22.10
 
@@ -21,15 +21,16 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 
 WORKDIR /app
 
-# Copy all files
-COPY --chown=appuser:appuser . .
+COPY --chown=appuser:appuser package.json yarn.lock ./
+COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY --chown=appuser:appuser shared/package.json shared/package.json
 
 # Install dependencies
-# COPY --chown=appuser:appuser package.json yarn.lock ./
-# COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-# COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
-# COPY --chown=appuser:appuser shared/package.json shared/package.json
 RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
+
+# Copy all files
+COPY --chown=appuser:appuser . .
 
 # =============================
 FROM appbase AS development
@@ -38,8 +39,6 @@ FROM appbase AS development
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
 
-ARG PROJECT
-ARG FOLDER
 # Use non-root user
 USER appuser
 WORKDIR /app
@@ -69,8 +68,6 @@ ARG NEXTJS_SENTRY_TRACING
 ARG NEXT_PUBLIC_LINKEDEVENTS_URL
 ARG NEXT_PUBLIC_KEYWORDS_DATA_SOURCE
 ARG NEXT_SHARP_PATH
-ARG PROJECT
-ARG FOLDER
 ARG SENTRY_ORG
 ARG SENTRY_PROJECT
 ARG SENTRY_AUTH_TOKEN
@@ -85,19 +82,18 @@ USER appuser
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build && yarn cache clean
+RUN yarn build
+# RUN yarn cache clean
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
-USER root
-RUN rm -rf node_modules
+# USER root
+# RUN rm -rf node_modules
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
 # ==========================================
 
 ARG PORT
-ARG PROJECT
-ARG FOLDER
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
@@ -112,8 +108,12 @@ COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/pack
 COPY --chown=appuser:appuser $PROJECT/shared/package.json $PROJECT/shared/package.json
 COPY --chown=appuser:appuser shared/package.json shared/package.json
 
+# Copy Yarn cache from appbase stage
+COPY --from=appbase --chown=appuser:appuser /app/.yarn_cache /app/.yarn_cache
+
 # Install production dependencies
-RUN yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
+RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
+    yarn cache clean --force
 
 # Copy files needed by nextjs
 COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
