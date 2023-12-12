@@ -80,6 +80,7 @@ WORKDIR /app
 
 # copy all files
 COPY --chown=appuser:appuser . .
+COPY --from=appbase /app/node_modules ./node_modules
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
@@ -107,7 +108,7 @@ USER appuser
 WORKDIR /app
 
 # Copy cache
-COPY --from=BUILDER /app/.yarn_cache .yarn_cache
+COPY --from=appbase /app/.yarn_cache .yarn_cache
 
 # Copy files needed by yarn install
 COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
