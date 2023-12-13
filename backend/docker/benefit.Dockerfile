@@ -1,14 +1,15 @@
 # ==============================
-FROM helsinkitest/python:3.9-slim as appbase
+FROM helsinkitest/python:3.9-slim
 # ==============================
 ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
 RUN mkdir /entrypoint
 
-COPY --chown=appuser:appuser benefit/requirements.txt /app/requirements.txt
-COPY --chown=appuser:appuser benefit/requirements-prod.txt /app/requirements-prod.txt
-COPY --chown=appuser:appuser benefit/.prod/escape_json.c /app/.prod/escape_json.c
-COPY --chown=appuser:appuser shared /shared/
+COPY benefit/requirements.txt /app/requirements.txt
+COPY benefit/requirements-prod.txt /app/requirements-prod.txt
+COPY benefit/.prod/escape_json.c /app/.prod/escape_json.c
+COPY shared /shared/
 
 RUN apt-install.sh \
         git \
@@ -24,43 +25,17 @@ RUN apt-install.sh \
     && mv /app/escape_json_plugin.so /app/.prod/escape_json_plugin.so \
     && apt-cleanup.sh build-essential
 
-COPY --chown=appuser:appuser benefit/docker-entrypoint.sh /entrypoint/docker-entrypoint.sh
+COPY benefit/docker-entrypoint.sh /entrypoint/docker-entrypoint.sh
+COPY benefit /app/
+
+ENV SECRET_KEY "only-for-build"
+RUN python manage.py compilemessages
+RUN python manage.py collectstatic
+
+EXPOSE 8000/tcp
+
+# Openshift starts the container process with group zero and random ID
+# we mimic that here with nobody and group zero
+USER nobody:0
+
 ENTRYPOINT ["/entrypoint/docker-entrypoint.sh"]
-COPY --chown=appuser:appuser benefit /app/
-
-# ==============================
-FROM appbase as development
-# ==============================
-
-COPY --chown=appuser:appuser benefit/requirements-dev.txt /app/requirements-dev.txt
-RUN apt-install.sh \
-        build-essential \
-    && pip install --no-cache-dir -r /app/requirements-dev.txt \
-    && apt-cleanup.sh build-essential
-
-ENV DEV_SERVER=1
-
-
-USER appuser
-
-# Compile messages as a part of Docker image build so it doesn't have to be done during
-# container startup. This removes the need for writeable localization directories.
-RUN django-admin compilemessages
-
-EXPOSE 8000/tcp
-
-# ==============================
-FROM appbase as production
-# ==============================
-ARG SENTRY_RELEASE
-ENV SENTRY_RELEASE=$SENTRY_RELEASE
-
-RUN SECRET_KEY="only-used-for-collectstatic" python manage.py collectstatic
-
-USER appuser
-
-# Compile messages as a part of Docker image build so it doesn't have to be done during
-# container startup. This removes the need for writeable localization directories.
-RUN django-admin compilemessages
-
-EXPOSE 8000/tcp
