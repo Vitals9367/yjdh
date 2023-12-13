@@ -1,58 +1,5 @@
-# =======================================
-FROM helsinkitest/node:18-slim AS distbase
-# =======================================
-
-# Install ca-certificates so that Sentry can upload source maps
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
-
-# Copy all files
-COPY --chown=appuser:root . /app
-
-# =============================
-FROM distbase AS appbase
-# =============================
-
-ARG PROJECT
-ARG FOLDER
-
-# Yarn
-ENV YARN_VERSION 1.22.10
-RUN yarn policies set-version "$YARN_VERSION" && \
-    yarn config set ignore-engines true
-
-WORKDIR /app
-
-# Install dependencies
-COPY --chown=appuser:root package.json yarn.lock ./
-COPY --chown=appuser:root $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:root $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY --chown=appuser:root shared/package.json shared/package.json
-RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
-
-# =============================
-FROM appbase AS development
-# =============================
-ARG PROJECT
-ARG FOLDER
-# Set V8 max heap size to 2GB (default is 512MB)
-# This prevents Docker Compose from crashing due to out of memory errors
-ENV NODE_OPTIONS="--max_old_space_size=2048"
-
-# Use non-root user
-USER appuser
-
-WORKDIR /app
-
-# Copy all files
-COPY --chown=appuser:root --from=distbase /app .
-
-ENV NEXT_TELEMETRY_DISABLED 1
-# Bake package.json start command into the image
-ENV DEV_START "yarn --cwd $PROJECT/$FOLDER dev"
-CMD ["sh", "-c", "${DEV_START}"]
-
 # ===================================
-FROM appbase AS staticbuilder
+FROM helsinkitest/node:18-slim AS staticbuilder
 # ===================================
 
 # Set environmental variables for frontend (used in CI)
@@ -81,20 +28,22 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-# Use non-root user
-USER appuser
+ENV YARN_VERSION 1.22.10
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean && \
+    yarn policies set-version "$YARN_VERSION" && \
+    yarn config set ignore-engines true
+
 WORKDIR /app
 
 # Copy all files
-COPY --chown=appuser:root --from=distbase /app .
+COPY . .
+
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
 RUN yarn build
-
-# Clean all dependencies (this should avoid caching + missing /pages directory problem)
-#RUN rm -rf node_modules && yarn cache clean
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
@@ -106,30 +55,28 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 ARG PROJECT
 ARG FOLDER
 
-# Use non-root user
-USER appuser
 WORKDIR /app
 
 # Copy cache
-COPY --from=appbase /app/.yarn_cache ./.yarn_cache
+COPY --from=staticbuilder /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
-COPY --chown=appuser:root package.json yarn.lock lerna.json ./
-COPY --chown=appuser:root $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:root $PROJECT/shared/package.json $PROJECT/shared/package.json
-COPY --chown=appuser:root shared/package.json shared/package.json
+COPY package.json yarn.lock lerna.json ./
+COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
+COPY shared/package.json shared/package.json
 
 # Install production dependencies
 RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
-COPY --from=staticbuilder --chown=appuser:root app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --from=staticbuilder --chown=appuser:root app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder --chown=appuser:root app/next.config.js ./
-COPY --from=staticbuilder --chown=appuser:root app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --from=staticbuilder app/next.config.js ./
+COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY --chown=appuser:root $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
 # Expose port
 EXPOSE $PORT
@@ -138,4 +85,9 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 # Start nextjs server
 ENV PROD_START "yarn --cwd $PROJECT/$FOLDER start"
+
+# Openshift starts the container process with group zero and random ID
+# we mimic that here with nobody and group zero
+USER nobody:0
+
 CMD ["sh", "-c", "${PROD_START}"]
