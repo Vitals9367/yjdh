@@ -32,6 +32,9 @@ ARG FOLDER
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
 
+# Use non-root user
+USER appuser
+
 WORKDIR /app
 
 # Copy all files
@@ -72,6 +75,8 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
+# Use non-root user
+USER appuser
 WORKDIR /app
 
 # copy all files
@@ -95,6 +100,8 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 ARG PROJECT
 ARG FOLDER
 
+# Use non-root user
+USER appuser
 WORKDIR /app
 
 # Copy cache
