@@ -5,6 +5,9 @@ FROM helsinkitest/node:18-slim AS distbase
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
+# Copy all files
+COPY --chown=appuser:root . /app
+
 # =============================
 FROM distbase AS appbase
 # =============================
@@ -41,7 +44,7 @@ USER appuser
 WORKDIR /app
 
 # Copy all files
-COPY --chown=appuser:root . .
+COPY --chown=appuser:root --from=distbase /app .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
@@ -82,8 +85,8 @@ ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 USER appuser
 WORKDIR /app
 
-# copy all files
-COPY --chown=appuser:root . .
+# Copy all files
+COPY --chown=appuser:root --from=distbase /app .
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
@@ -91,7 +94,7 @@ WORKDIR /app/$PROJECT/$FOLDER/
 RUN yarn build
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
-RUN rm -rf node_modules && yarn cache clean
+#RUN rm -rf node_modules && yarn cache clean
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
