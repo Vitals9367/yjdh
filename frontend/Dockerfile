@@ -83,6 +83,13 @@ WORKDIR /app/$PROJECT/$FOLDER/
 
 RUN yarn build
 
+# Clean all dependencies (this should avoid caching + missing /pages directory problem)
+USER root
+RUN rm -rf node_modules
+
+USER appuser
+RUN yarn cache clean
+
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
 # ==========================================
