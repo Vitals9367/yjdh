@@ -17,10 +17,10 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 WORKDIR /app
 
 # Install dependencies
-COPY --chown=appuser:appuser package.json yarn.lock ./
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY --chown=appuser:appuser shared/package.json shared/package.json
+COPY package.json yarn.lock ./
+COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY shared/package.json shared/package.json
 RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
@@ -32,15 +32,10 @@ ARG FOLDER
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
 
-# Copy all files
-COPY --chown=appuser:appuser . .
-
-# Use non-root user
-USER appuser
 WORKDIR /app
 
 # Copy all files
-COPY --chown=appuser:appuser . .
+COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
@@ -77,12 +72,10 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-# Use non-root user
-USER appuser
 WORKDIR /app
 
 # copy all files
-COPY --chown=appuser:appuser . .
+COPY . .
 #COPY --from=appbase --chown=appuser:appuser /app/node_modules ./node_modules
 
 # Build application
@@ -91,10 +84,7 @@ WORKDIR /app/$PROJECT/$FOLDER/
 RUN yarn build
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
-USER root
 RUN rm -rf node_modules
-
-USER appuser
 RUN yarn cache clean
 
 # ==========================================
@@ -107,31 +97,31 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 ARG PROJECT
 ARG FOLDER
 
-# Use non-root user
-USER appuser
-
 WORKDIR /app
 
 # Copy cache
 # COPY --from=appbase /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
-COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=appuser:appuser $PROJECT/shared/package.json $PROJECT/shared/package.json
-COPY --chown=appuser:appuser shared/package.json shared/package.json
+COPY package.json yarn.lock lerna.json ./
+COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
+COPY shared/package.json shared/package.json
 
 # Install production dependencies
 RUN --mount=type=cache,from=appbase,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache  yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
-COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --from=staticbuilder --chown=appuser:appuser app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder --chown=appuser:appuser app/next.config.js ./
-COPY --from=staticbuilder --chown=appuser:appuser app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --from=staticbuilder app/next.config.js ./
+COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY --chown=appuser:appuser $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+
+RUN chgrp -R 0 /app && \
+    chmod -R g=u /app
 
 # Expose port
 EXPOSE $PORT
