@@ -21,7 +21,7 @@ COPY package.json yarn.lock ./
 COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
 COPY $PROJECT/shared/package.json* $PROJECT/shared/package.json
 COPY shared/package.json shared/package.json
-RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
 FROM appbase AS development
@@ -100,7 +100,7 @@ ARG FOLDER
 WORKDIR /app
 
 # Copy cache
-# COPY --from=appbase /app/.yarn_cache ./.yarn_cache
+COPY --from=appbase /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
 COPY package.json yarn.lock lerna.json ./
@@ -109,7 +109,7 @@ COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
 COPY shared/package.json shared/package.json
 
 # Install production dependencies
-RUN --mount=type=cache,from=appbase,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache  yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
