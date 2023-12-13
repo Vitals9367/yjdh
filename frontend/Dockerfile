@@ -1,9 +1,9 @@
-ARG PROJECT
-ARG FOLDER
-
 # =============================
 FROM helsinkitest/node:18-slim AS appbase
 # =============================
+
+ARG PROJECT
+ARG FOLDER
 
 # Install ca-certificates so that Sentry can upload source maps
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
@@ -26,9 +26,14 @@ RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDE
 # =============================
 FROM appbase AS development
 # =============================
+ARG PROJECT
+ARG FOLDER
 # Set V8 max heap size to 2GB (default is 512MB)
 # This prevents Docker Compose from crashing due to out of memory errors
 ENV NODE_OPTIONS="--max_old_space_size=2048"
+
+# Copy all files
+COPY --chown=appuser:appuser . .
 
 # Use non-root user
 USER appuser
@@ -63,6 +68,8 @@ ARG NEXT_PUBLIC_LINKEDEVENTS_URL
 ARG NEXT_PUBLIC_KEYWORDS_DATA_SOURCE
 ARG NEXT_SHARP_PATH
 ARG SENTRY_ORG
+ARG PROJECT
+ARG FOLDER
 ARG SENTRY_PROJECT
 ARG SENTRY_AUTH_TOKEN
 ARG SENTRY_URL
@@ -97,6 +104,8 @@ FROM helsinkitest/node:18-slim AS production
 ARG PORT
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
+ARG PROJECT
+ARG FOLDER
 
 # Use non-root user
 USER appuser
