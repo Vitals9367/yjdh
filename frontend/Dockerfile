@@ -5,22 +5,22 @@ FROM helsinkitest/node:18-slim AS appbase
 ARG PROJECT
 ARG FOLDER
 
-# Install ca-certificates so that Sentry can upload source maps
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
-
-# Yarn
 ENV YARN_VERSION 1.22.10
 
-RUN yarn policies set-version "$YARN_VERSION" && \
+# Install ca-certificates so that Sentry can upload source maps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get clean && \
+    yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true
 
 WORKDIR /app
 
 # Install dependencies
-COPY package.json yarn.lock ./
-COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY shared/package.json shared/package.json
+COPY --chown=appuser:root package.json yarn.lock ./
+COPY --chown=appuser:root $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY --chown=appuser:root $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY --chown=appuser:root shared/package.json shared/package.json
 RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # =============================
@@ -35,7 +35,7 @@ ENV NODE_OPTIONS="--max_old_space_size=2048"
 WORKDIR /app
 
 # Copy all files
-COPY . .
+COPY --chown=appuser:root . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 # Bake package.json start command into the image
@@ -75,8 +75,7 @@ ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 WORKDIR /app
 
 # copy all files
-COPY . .
-#COPY --from=appbase --chown=appuser:appuser /app/node_modules ./node_modules
+COPY --chown=appuser:root . .
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
@@ -84,8 +83,7 @@ WORKDIR /app/$PROJECT/$FOLDER/
 RUN yarn build
 
 # Clean all dependencies (this should avoid caching + missing /pages directory problem)
-RUN rm -rf node_modules
-RUN yarn cache clean
+RUN rm -rf node_modules && yarn cache clean
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
@@ -103,25 +101,22 @@ WORKDIR /app
 COPY --from=appbase /app/.yarn_cache ./.yarn_cache
 
 # Copy files needed by yarn install
-COPY package.json yarn.lock lerna.json ./
-COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
-COPY shared/package.json shared/package.json
+COPY --chown=appuser:root package.json yarn.lock lerna.json ./
+COPY --chown=appuser:root $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY --chown=appuser:root $PROJECT/shared/package.json $PROJECT/shared/package.json
+COPY --chown=appuser:root shared/package.json shared/package.json
 
 # Install production dependencies
 RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
-COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder app/next.config.js ./
-COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder --chown=appuser:root app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --from=staticbuilder --chown=appuser:root app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --from=staticbuilder --chown=appuser:root app/next.config.js ./
+COPY --from=staticbuilder --chown=appuser:root app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
-
-RUN chgrp -R 0 /app && \
-    chmod -R g=u /app
+COPY --chown=appuser:root $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
 # Expose port
 EXPOSE $PORT
