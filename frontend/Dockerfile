@@ -1,17 +1,20 @@
+# =======================================
+FROM helsinkitest/node:18-slim AS distbase
+# =======================================
+
+# Install ca-certificates so that Sentry can upload source maps
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
+
 # =============================
-FROM helsinkitest/node:18-slim AS appbase
+FROM distbase AS appbase
 # =============================
 
 ARG PROJECT
 ARG FOLDER
 
+# Yarn
 ENV YARN_VERSION 1.22.10
-
-# Install ca-certificates so that Sentry can upload source maps
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates && \
-    apt-get clean && \
-    yarn policies set-version "$YARN_VERSION" && \
+RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true
 
 WORKDIR /app
