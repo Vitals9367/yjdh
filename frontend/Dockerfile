@@ -28,24 +28,25 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-ENV YARN_VERSION 1.22.10
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean && \
-    yarn policies set-version "$YARN_VERSION" && \
-    yarn config set ignore-engines true
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
 WORKDIR /app
 
 # Copy all files
 COPY . .
 
-RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
+ENV YARN_VERSION 1.22.10
+ENV YARN_CACHE_FOLDER /app/.yarn_cache
+
+RUN yarn policies set-version "$YARN_VERSION" && \
+    yarn config set ignore-engines true && \
+    yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build && \
-    rm -rf node_modules && \
-    YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
+RUN yarn build && rm -rf node_modules && \
+    yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # ==========================================
