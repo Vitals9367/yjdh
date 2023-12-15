@@ -43,7 +43,10 @@ RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --ne
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build
+RUN yarn build && \
+    rm -rf node_modules && \
+    YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
+    yarn cache clean --force
 
 # ==========================================
 FROM helsinkitest/node:18-slim AS production
@@ -57,23 +60,13 @@ ARG FOLDER
 
 WORKDIR /app
 
-# Copy cache
-COPY --from=staticbuilder /app/.yarn_cache ./.yarn_cache
-
-# Copy files needed by yarn install
-COPY package.json yarn.lock lerna.json ./
-COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY $PROJECT/shared/package.json $PROJECT/shared/package.json
-COPY shared/package.json shared/package.json
-
-# Install production dependencies
-RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
-
 # Copy files needed by nextjs
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
 COPY --from=staticbuilder app/next.config.js ./
 COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder app/node_modules ./node_modules
+COPY --from=staticbuilder app/package.json ./package.json
 
 # Copy public directory
 COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
