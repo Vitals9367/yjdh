@@ -1,5 +1,12 @@
+# =======================================
+FROM helsinkitest/node:18-slim AS distbase
+# =======================================
+
+# Install ca-certificates so that Sentry can upload source maps
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
+
 # ===================================
-FROM helsinkitest/node:18-slim AS staticbuilder
+FROM distbase AS staticbuilder
 # ===================================
 
 # Set environmental variables for frontend (used in CI)
@@ -28,12 +35,11 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
-
 WORKDIR /app
 # Copy all files
 COPY . .
 
+ENV NODE_OPTIONS="--max_old_space_size=2048"
 ENV YARN_VERSION 1.22.10
 ENV YARN_CACHE_FOLDER /app/.yarn_cache
 
@@ -62,10 +68,16 @@ WORKDIR /app
 # Copy files needed by nextjs
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder app/next.config.js ./
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/node_modules $PROJECT/$FOLDER/node_modules
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+
 COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
+COPY --from=staticbuilder app/shared/node_modules shared/node_modules
+COPY --from=staticbuilder app/shared/package.json shared/package.json
+
 COPY --from=staticbuilder app/node_modules ./node_modules
 COPY --from=staticbuilder app/package.json ./package.json
+COPY --from=staticbuilder app/next.config.js ./
 
 # Copy public directory
 COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
