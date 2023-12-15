@@ -68,10 +68,12 @@ WORKDIR /app
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/node_modules $PROJECT/$FOLDER/node_modules
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --from=staticbuilder app/$PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
 COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 COPY --from=staticbuilder app/shared/node_modules shared/node_modules
+COPY --from=staticbuilder app/shared/package.json shared/package.json
 COPY --from=staticbuilder app/node_modules node_modules
-COPY --from=staticbuilder app/$PROJECT/$FOLDER/node_modules $PROJECT/$FOLDER/node_modules
+COPY --from=staticbuilder app/package.json package.json
 
 # Copy public directory
 COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
