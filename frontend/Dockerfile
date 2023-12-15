@@ -70,16 +70,14 @@ COPY --from=staticbuilder app/package.json ./package.json
 # Copy public directory
 COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
-# Expose port
-EXPOSE $PORT
-
 ENV NEXT_TELEMETRY_DISABLED 1
-
-# Start nextjs server
 ENV PROD_START "yarn --cwd $PROJECT/$FOLDER start"
 
 # Openshift starts the container process with group zero and random ID
 # we mimic that here with nobody and group zero
 USER nobody:0
+
+# Expose port
+EXPOSE $PORT
 
 CMD ["sh", "-c", "${PROD_START}"]
