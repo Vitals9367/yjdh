@@ -39,12 +39,12 @@ ENV YARN_CACHE_FOLDER /app/.yarn_cache
 
 RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true && \
-    --mount=type=cache,source="$PWD"/.yarn_cache,target="$YARN_CACHE_FOLDER" yarn --frozen-lockfile --check-files --network-timeout 600000
+    --mount=type=cache,source="$PWD"/.yarn_cache,target="$YARN_CACHE_FOLDER",sharing=locked yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 RUN yarn build && rm -rf node_modules && \
-    --mount=type=cache,source="$PWD"/.yarn_cache,target="$YARN_CACHE_FOLDER" yarn install --production --check-files --ignore-scripts --prefer-offline && \
+    --mount=type=cache,source="$PWD"/.yarn_cache,target="$YARN_CACHE_FOLDER",sharing=locked yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # ==========================================
