@@ -31,7 +31,6 @@ ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && apt-get clean
 
 WORKDIR /app
-
 # Copy all files
 COPY . .
 
@@ -44,7 +43,6 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
-
 RUN yarn build && rm -rf node_modules && \
     yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
