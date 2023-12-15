@@ -36,8 +36,6 @@ COPY . .
 
 ENV YARN_VERSION 1.22.10
 ENV YARN_CACHE_FOLDER /app/.yarn_cache
-# Mount a directory during the build process
-RUN 
 
 RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true && \
