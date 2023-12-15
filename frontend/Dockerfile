@@ -36,15 +36,17 @@ COPY . .
 
 ENV YARN_VERSION 1.22.10
 ENV YARN_CACHE_FOLDER /app/.yarn_cache
+# Mount a directory during the build process
+RUN 
 
 RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true && \
-    yarn --frozen-lockfile --check-files --network-timeout 600000
+    --mount=type=bind,source="$PWD",target=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 RUN yarn build && rm -rf node_modules && \
-    yarn install --production --check-files --ignore-scripts --prefer-offline && \
+    --mount=type=bind,source="$PWD",target=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # ==========================================
