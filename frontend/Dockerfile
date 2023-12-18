@@ -68,7 +68,8 @@ COPY --chown=nobody:0 . .
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
 
-RUN yarn build
+RUN yarn build && \
+    yarn cache clean --force
 
 # ==========================================
 FROM appbase AS production
