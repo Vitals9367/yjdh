@@ -22,11 +22,11 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 WORKDIR /app
 
 # Install dependencies
-COPY --chown=nobody:0 package.json yarn.lock lerna.json ./
-COPY --chown=nobody:0 $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY --chown=nobody:0 $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY --chown=nobody:0 shared/package.json shared/package.json
-RUN yarn --frozen-lockfile --check-files --network-timeout 600000 && chown -R nobody:0 $YARN_CACHE_FOLDER
+COPY --chown=appuser:0 package.json yarn.lock lerna.json ./
+COPY --chown=appuser:0 $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY --chown=appuser:0 $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY --chown=appuser:0 shared/package.json shared/package.json
+RUN yarn --frozen-lockfile --check-files --network-timeout 600000 && chown -R appuser:0 $YARN_CACHE_FOLDER
 
 # ===================================
 FROM appbase AS staticbuilder
@@ -58,11 +58,11 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-USER nobody:0
+USER appuser:0
 WORKDIR /app
 
 # copy all files
-COPY --chown=nobody:0 . .
+COPY --chown=appuser:0 . .
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
@@ -90,20 +90,20 @@ RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
            /app/shared/node_modules \
            /app/node_modules
            
-USER nobody:0
+USER appuser:0
 
 # Install production dependencies           
 RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # Copy files needed by nextjs
-COPY --chown=nobody:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --chown=nobody:0 --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --chown=nobody:0 --from=staticbuilder app/next.config.js ./
-COPY --chown=nobody:0 --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
+COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --chown=appuser:0 --from=staticbuilder app/next.config.js ./
+COPY --chown=appuser:0 --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY --chown=nobody:0 $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+COPY --chown=appuser:0 $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
