@@ -14,6 +14,7 @@ ARG PROJECT
 ARG FOLDER
 
 USER nobody:0
+RUN +wrx nobody:0 /app
 
 # Yarn
 ENV YARN_VERSION 1.22.10
