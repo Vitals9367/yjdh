@@ -83,6 +83,7 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 WORKDIR /app
 
 RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
+           /app/$PROJECT/shared/node_modules \
            /app/$PROJECT/node_modules \
            /app/shared/node_modules \
            /app/node_modules
