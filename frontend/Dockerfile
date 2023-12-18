@@ -13,9 +13,6 @@ FROM distbase AS appbase
 ARG PROJECT
 ARG FOLDER
 
-RUN chown nobody:0 /app
-USER nobody:0
-
 # Yarn
 ENV YARN_VERSION 1.22.10
 ENV YARN_CACHE_FOLDER /app/.yarn_cache
@@ -25,10 +22,10 @@ RUN yarn policies set-version "$YARN_VERSION" && \
 WORKDIR /app
 
 # Install dependencies
-COPY package.json yarn.lock lerna.json ./
-COPY $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
-COPY $PROJECT/shared/package.json* $PROJECT/shared/package.json
-COPY shared/package.json shared/package.json
+COPY --chown=appuser:0 package.json yarn.lock lerna.json ./
+COPY --chown=appuser:0 $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
+COPY --chown=appuser:0 $PROJECT/shared/package.json* $PROJECT/shared/package.json
+COPY --chown=appuser:0 shared/package.json shared/package.json
 RUN --mount=type=cache,target="$PWD/.yarn_cache",sharing=locked YARN_CACHE_FOLDER="$PWD"/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # ===================================
@@ -61,7 +58,6 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-# Use non-root user
 USER nobody:0
 WORKDIR /app
 
@@ -83,24 +79,27 @@ ARG FOLDER
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
-USER nobody:0
 WORKDIR /app
+
+USER root
 
 RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
            /app/$PROJECT/shared/node_modules \
            /app/$PROJECT/node_modules \
            /app/shared/node_modules \
            /app/node_modules
+           
+USER nobody:0
 
 # Install production dependencies           
 RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
     yarn cache clean --force
 
 # Copy files needed by nextjs
-COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
-COPY --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
-COPY --from=staticbuilder app/next.config.js ./
-COPY --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
+COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
+COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/next-i18next.config.js app/$PROJECT/$FOLDER/next.config.js $PROJECT/$FOLDER/
+COPY --chown=appuser:0 --from=staticbuilder app/next.config.js ./
+COPY --chown=appuser:0 --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
 COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
