@@ -82,11 +82,11 @@ WORKDIR /app
 
 USER root
 
-RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
-           /app/$PROJECT/shared/node_modules \
-           /app/$PROJECT/node_modules \
-           /app/shared/node_modules \
-           /app/node_modules
+RUN rm -rf $PROJECT/$FOLDER/node_modules \
+           $PROJECT/shared/node_modules \
+           $PROJECT/node_modules \
+           shared/node_modules \
+           node_modules
            
 USER appuser:0
 
@@ -107,4 +107,4 @@ ENV NEXT_TELEMETRY_DISABLED 1
 # Expose port
 EXPOSE $PORT
 
-CMD ["sh", "-c", "yarn --cwd $PROJECT/$FOLDER start"]
+CMD ["sh", "-c", "yarn --cwd /app/$PROJECT/$FOLDER start"]
