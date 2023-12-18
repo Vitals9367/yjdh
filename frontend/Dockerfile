@@ -102,7 +102,7 @@ COPY --chown=appuser:0 --from=staticbuilder app/next.config.js ./
 COPY --chown=appuser:0 --from=staticbuilder app/shared/src/server/next-server.js shared/src/server/
 
 # Copy public directory
-COPY $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
+COPY --chown=appuser:0 $PROJECT/$FOLDER/public $PROJECT/$FOLDER/public
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
