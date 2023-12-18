@@ -82,7 +82,12 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 WORKDIR /app
 
 # Install production dependencies
-RUN rm -rf /app/$PROJECT/$FOLDER/node_modules && yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
+RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
+           /app/$PROJECT/node_modules \
+           /app/shared/node_modules \
+           /app/node_modules && \
+    yarn install --production --check-files --ignore-scripts --prefer-offline && \
+    yarn cache clean --force
 
 # Copy files needed by nextjs
 COPY --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
