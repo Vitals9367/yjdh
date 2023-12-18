@@ -15,7 +15,6 @@ ARG FOLDER
 
 # Yarn
 ENV YARN_VERSION 1.22.10
-ENV YARN_CACHE_FOLDER=/app/.yarn_cache
 RUN yarn policies set-version "$YARN_VERSION" && \
     yarn config set ignore-engines true
 
@@ -26,7 +25,7 @@ COPY --chown=appuser:0 package.json yarn.lock lerna.json ./
 COPY --chown=appuser:0 $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
 COPY --chown=appuser:0 $PROJECT/shared/package.json* $PROJECT/shared/package.json
 COPY --chown=appuser:0 shared/package.json shared/package.json
-RUN yarn --frozen-lockfile --check-files --network-timeout 600000 && chown -R appuser:0 $YARN_CACHE_FOLDER
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn --frozen-lockfile --check-files --network-timeout 600000
 
 # ===================================
 FROM appbase AS staticbuilder
@@ -92,8 +91,7 @@ RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
 USER appuser:0
 
 # Install production dependencies           
-RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
-    rm -rf $YARN_CACHE_FOLDER
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline
 
 # Copy files needed by nextjs
 COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
