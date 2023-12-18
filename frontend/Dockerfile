@@ -13,8 +13,8 @@ FROM distbase AS appbase
 ARG PROJECT
 ARG FOLDER
 
+RUN chown nobody:0 /app
 USER nobody:0
-RUN +wrx nobody:0 /app
 
 # Yarn
 ENV YARN_VERSION 1.22.10
