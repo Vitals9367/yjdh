@@ -58,7 +58,7 @@ ARG SENTRY_RELEASE
 ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
-USER nobody:0
+USER appuser:0
 WORKDIR /app
 
 # copy all files
@@ -89,7 +89,7 @@ RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
            /app/shared/node_modules \
            /app/node_modules
            
-USER nobody:0
+USER appuser:0
 
 # Install production dependencies           
 RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
@@ -108,5 +108,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 # Expose port
 EXPOSE $PORT
+
+USER nobody:0
 
 CMD ["sh", "-c", "yarn --cwd $PROJECT/$FOLDER start"]
