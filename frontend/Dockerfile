@@ -91,7 +91,7 @@ RUN rm -rf /app/$PROJECT/$FOLDER/node_modules \
 USER appuser:0
 
 # Install production dependencies           
-RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline
+RUN YARN_CACHE_FOLDER=/app/.yarn_cache yarn install --production --check-files --ignore-scripts --prefer-offline && yarn cache clean --force
 
 # Copy files needed by nextjs
 COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
