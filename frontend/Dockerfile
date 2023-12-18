@@ -15,8 +15,10 @@ ARG FOLDER
 
 # Yarn
 ENV YARN_VERSION 1.22.10
+ENV YARN_CACHE_FOLDER=/app/.yarn_cache
 RUN yarn policies set-version "$YARN_VERSION" && \
-    yarn config set ignore-engines true
+    yarn config set ignore-engines true && \
+    chown appuser:appuser $YARN_CACHE_FOLDER
 
 WORKDIR /app
 
