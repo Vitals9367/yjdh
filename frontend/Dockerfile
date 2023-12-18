@@ -93,8 +93,7 @@ USER appuser:0
 
 # Install production dependencies           
 RUN yarn install --production --check-files --ignore-scripts --prefer-offline && \
-    chown -R nobody:0 $YARN_CACHE_FOLDER && \
-    yarn cache clean --force
+    rm -rf $YARN_CACHE_FOLDER
 
 # Copy files needed by nextjs
 COPY --chown=appuser:0 --from=staticbuilder app/$PROJECT/$FOLDER/.next $PROJECT/$FOLDER/.next
