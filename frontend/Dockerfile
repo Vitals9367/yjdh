@@ -59,7 +59,6 @@ ARG NEXT_PUBLIC_ASKEM_API_KEY
 ARG NEXT_PUBLIC_SHOW_COOKIE_BANNER
 
 # Use non-root user
-USER appuser
 WORKDIR /app
 
 # copy all files
@@ -79,9 +78,6 @@ ARG PROJECT
 ARG FOLDER
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
-
-# Use non-root user
-USER appuser
 
 WORKDIR /app
 
