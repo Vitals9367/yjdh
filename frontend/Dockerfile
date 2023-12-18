@@ -107,4 +107,6 @@ ENV NEXT_TELEMETRY_DISABLED 1
 # Expose port
 EXPOSE $PORT
 
-CMD ["sh", "-c", "yarn --cwd /app/$PROJECT/$FOLDER start"]
+# Start nextjs server
+ENV PROD_START "yarn --cwd $PROJECT/$FOLDER start"
+CMD ["sh", "-c", "${PROD_START}"]
