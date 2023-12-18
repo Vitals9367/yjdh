@@ -62,7 +62,7 @@ USER nobody:0
 WORKDIR /app
 
 # copy all files
-COPY . .
+COPY --chown=appuser:0 . .
 
 # Build application
 WORKDIR /app/$PROJECT/$FOLDER/
