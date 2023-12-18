@@ -17,8 +17,7 @@ ARG FOLDER
 ENV YARN_VERSION 1.22.10
 ENV YARN_CACHE_FOLDER=/app/.yarn_cache
 RUN yarn policies set-version "$YARN_VERSION" && \
-    yarn config set ignore-engines true && \
-    chown appuser:appuser $YARN_CACHE_FOLDER
+    yarn config set ignore-engines true
 
 WORKDIR /app
 
@@ -27,7 +26,7 @@ COPY --chown=appuser:appuser package.json yarn.lock lerna.json ./
 COPY --chown=appuser:appuser $PROJECT/$FOLDER/package.json $PROJECT/$FOLDER/package.json
 COPY --chown=appuser:appuser $PROJECT/shared/package.json* $PROJECT/shared/package.json
 COPY --chown=appuser:appuser shared/package.json shared/package.json
-RUN yarn --frozen-lockfile --check-files --network-timeout 600000
+RUN yarn --frozen-lockfile --check-files --network-timeout 600000 && chown -R appuser:appuser $YARN_CACHE_FOLDER
 
 # ===================================
 FROM appbase AS staticbuilder
