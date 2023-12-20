@@ -29,8 +29,8 @@ COPY benefit/docker-entrypoint.sh /entrypoint/docker-entrypoint.sh
 COPY benefit /app/
 
 ENV SECRET_KEY "only-for-build"
-RUN python manage.py compilemessages
-RUN python manage.py collectstatic
+RUN python manage.py compilemessages && \
+    django-admin compilemessages
 
 EXPOSE 8000/tcp
 
