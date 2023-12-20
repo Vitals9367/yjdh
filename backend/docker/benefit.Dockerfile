@@ -19,8 +19,8 @@ RUN apt-install.sh \
         wkhtmltopdf \
         gettext \
     && pip install -U pip \
-    && pip install --no-cache-dir -r /app/requirements.txt \
-    && pip install --no-cache-dir  -r /app/requirements-prod.txt \
+    && pip install -r /app/requirements.txt \
+    && pip install -r /app/requirements-prod.txt \
     && uwsgi --build-plugin /app/.prod/escape_json.c \
     && mv /app/escape_json_plugin.so /app/.prod/escape_json_plugin.so \
     && apt-cleanup.sh build-essential
