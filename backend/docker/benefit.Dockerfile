@@ -19,7 +19,7 @@ RUN apt-install.sh \
         wkhtmltopdf \
         gettext \
     && pip install -U pip \
-    && pip install -r /app/requirements.txt -r /app/requirements-prod.txt \
+    && pip install --no-cache-dir -r /app/requirements.txt -r /app/requirements-prod.txt \
     && uwsgi --build-plugin /app/.prod/escape_json.c \
     && mv /app/escape_json_plugin.so /app/.prod/escape_json_plugin.so \
     && apt-cleanup.sh build-essential
@@ -28,7 +28,7 @@ COPY benefit/docker-entrypoint.sh /entrypoint/docker-entrypoint.sh
 COPY benefit /app/
 
 ENV SECRET_KEY "only-for-build"
-RUN python manage.py compilemessages && \
+RUN python manage.py collectstatic && \
     django-admin compilemessages
 
 EXPOSE 8000/tcp
